@@ -1,0 +1,81 @@
+<resources>
+
+    <!--application name-->
+    <string name="app_name">CourSee</string>
+
+    <!--bottom navigation title-->
+    <string name="title_nav_home">Главная</string>
+    <string name="title_nav_category">Категории</string>
+    <string name="title_nav_favorite">Закладки</string>
+    <string name="title_nav_settings">Настройки</string>
+
+    <!-- play store application link i.e more apps -->
+    <string name="play_more_apps">https://play.google.com/store</string>
+    <string name="privacy_policy_url">https://docs.google.com/document/d/1hQRnMihP95dFflKJVhKbpNvt8jVQ3EXqT_cKS_ABjAk/edit?usp=sharing</string>
+
+    <!--settings-->
+    <string name="title_setting_theme">Тёмная Тема</string>
+    <string name="sub_title_setting_theme">Эта тема экономит зарядку аккумулятора</string>
+    <string name="title_setting_list">Вид Видео</string>
+    <string name="single_choice_default">По-умолчанию</string>
+    <string name="single_choice_compact">Компактный</string>
+    <string name="title_setting_category">Вид Категорий</string>
+    <string name="single_choice_list">Список</string>
+    <string name="single_choice_grid_2">Сетка (2 столбца)</string>
+    <string name="single_choice_grid_3">Сетка (3 столбца)</string>
+    <string name="title_setting_privacy">Политика Конфиденциальности</string>
+    <string name="sub_title_setting_privacy">Политика Приложения</string>
+    <string name="title_setting_rate">Оцените Нас</string>
+    <string name="sub_title_setting_rate">Оцените приложение в Google Play</string>
+    <string name="title_setting_more">Другие Приложения</string>
+    <string name="sub_title_setting_more">Все наши приложения</string>
+    <string name="title_setting_about">О Приложении</string>
+    <string name="sub_title_setting_about">Информация, Версия, Автор</string>
+    <string name="about_app_privacy_policy">Соглашение</string>
+    <string name="sub_about_app_version">Версия 1.0.0</string>
+    <string name="sub_about_app_copyright">Copyright &#169; 2021 CourSee \n All rights reserved</string>
+
+    <!--network & error message-->
+    <string name="whops">Упс!</string>
+    <string name="network_required">Требуется подключение к интернет для воспроизведения видео!</string>
+    <string name="failed_title_text">Ошибка сети!</string>
+    <string name="failed_text">Нет подключения к интернету. Проверьте связь и попробуйте снова!</string>
+    <string name="no_internet_text">Нет подключения к интернету. Проверьте связь и попробуйте снова!</string>
+    <string name="no_category_found">похоже, что в настоящее время нет доступных категорий</string>
+    <string name="no_post_found">Видео не найдено! если вы хотите продолжить поиск, попробуйте ввести другое ключевое слово!</string>
+    <string name="msg_no_item">похоже, что в настоящее время нет доступного контента.</string>
+    <string name="msg_search_input">Пожалуйста, вставьте ключевое слово</string>
+    <string name="error_player">Произошла ошибка при инициализации плеера YouTube(%1$s)</string>
+
+    <!--favorite-->
+    <string name="favorite_add">Добавить в Закладки</string>
+    <string name="favorite_remove">Удалить из Закладок</string>
+    <string name="favorite_added">Добавлено в избранное</string>
+    <string name="favorite_removed">Удалено из Закладок</string>
+    <string name="no_favorite_found">Ваш список закладок пуст, добавьте сюда видео.</string>
+
+    <!--sort-->
+    <string name="title_sort">Сортировка видео</string>
+    <string name="most_popular">Популярные</string>
+    <string name="oldest">По дате (старые)</string>
+    <string name="newest">По дате (новые)</string>
+
+    <!--package validation-->
+    <string name="msg_validate">Unfortunately, your applicationId or package name is not registered.\n\nplease login to your admin panel and register your applicationId or package name in settings menu in the admin panel to continue using app.</string>
+
+    <!--dialog choose option-->
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_read_more">Подробнее</string>
+    <string name="dialog_dismiss">Отклонить</string>
+
+    <!--others-->
+    <string name="share_text">Я хотел бы поделиться этим приложением Coursee. Скачайте из Google Play и смотрите бесплатно курсы</string>
+    <string name="video_count_text">Видео</string>
+    <string name="views_count" />
+    <string name="btn_retry">Повторить</string>
+    <string name="search">Поиск</string>
+    <string name="search_text">Поиск&#8230;</string>
+    <string name="txt_suggested">Вам будет интересно</string>
+    <string name="press_again_to_exit">Нажмите еще раз, чтобы выйти из приложения</string>
+
+</resources>

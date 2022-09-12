@@ -1,0 +1,38 @@
+<resources>
+
+    <style name="AppTheme" parent="BaseTheme" />
+
+    <style name="AppDarkTheme" parent="BaseDarkTheme" />
+
+    <style name="BaseTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/colorBackgroundLight</item>
+        <item name="actionBarTheme">@style/ToolBarTheme</item>
+    </style>
+
+    <style name="BaseDarkTheme" parent="Theme.AppCompat.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/colorBackgroundDark</item>
+        <item name="actionBarTheme">@style/ToolBarDarkTheme</item>
+    </style>
+
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
+        <item name="colorControlNormal">@android:color/white</item>
+    </style>
+
+    <style name="ToolBarTheme" parent="ThemeOverlay.AppCompat.Light">
+        <item name="colorControlNormal">@color/colorBlack</item>
+    </style>
+
+    <style name="ToolBarDarkTheme" parent="ThemeOverlay.AppCompat.Dark">
+        <item name="colorControlNormal">@color/colorWhite</item>
+    </style>
+
+    <!-- ToolBar -->
+
+</resources>

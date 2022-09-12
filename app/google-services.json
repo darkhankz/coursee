@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "512107710",
+    "project_id": "com-upstudy-course",
+    "storage_bucket": "com-upstudy-course.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:512107710:android:7af096acfb28e354892aef",
+        "android_client_info": {
+          "package_name": "com.coursee.free"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "512107710-1ttdkdfu9v5sjtmg4uu7ao3dge63thq5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZv8BhWrBVjWH5c0d6gvX_7dXJdpZHkOk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "512107710-1ttdkdfu9v5sjtmg4uu7ao3dge63thq5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
