@@ -1,13 +1,9 @@
 package com.coursee.free.activities;
 
 import android.annotation.SuppressLint;
-import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.support.v4.media.session.PlaybackStateCompat;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -15,7 +11,6 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -23,35 +18,22 @@ import androidx.core.content.ContextCompat;
 import com.coursee.free.R;
 import com.coursee.free.config.AppConfig;
 import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.DefaultLoadControl;
-import com.google.android.exoplayer2.DefaultRenderersFactory;
-import com.google.android.exoplayer2.ExoPlaybackException;
-import com.google.android.exoplayer2.ExoPlayerFactory;
-import com.google.android.exoplayer2.LoadControl;
-import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.MediaItem;
+import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.RenderersFactory;
-import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.Timeline;
-import com.google.android.exoplayer2.source.ExtractorMediaSource;
+import com.google.android.exoplayer2.source.DefaultMediaSourceFactory;
 import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.source.TrackGroupArray;
+import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
-import com.google.android.exoplayer2.source.dash.DefaultDashChunkSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
-import com.google.android.exoplayer2.source.smoothstreaming.DefaultSsChunkSource;
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
-import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
-import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.google.android.exoplayer2.trackselection.TrackSelection;
-import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
-import com.google.android.exoplayer2.trackselection.TrackSelector;
 import com.google.android.exoplayer2.ui.PlayerView;
-import com.google.android.exoplayer2.upstream.BandwidthMeter;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
+import com.google.android.exoplayer2.upstream.DefaultDataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
-import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 
@@ -60,10 +42,7 @@ public class ActivityVideoPlayer extends AppCompatActivity {
     private static final String TAG = "ActivityStreamPlayer";
     String url;
     private PlayerView playerView;
-    private SimpleExoPlayer player;
-    private static final DefaultBandwidthMeter BANDWIDTH_METER = new DefaultBandwidthMeter();
-    private DataSource.Factory mediaDataSourceFactory;
-    private Handler mainHandler;
+    private ExoPlayer player;
     private ProgressBar progressBar;
     boolean fullscreen = false;
     private ImageView fullscreenButton;
@@ -80,22 +59,12 @@ public class ActivityVideoPlayer extends AppCompatActivity {
         }
 
         url = getIntent().getStringExtra("url");
-
         progressBar = findViewById(R.id.progressBar);
 
-        mediaDataSourceFactory = buildDataSourceFactory(true);
-
-        mainHandler = new Handler();
-        BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-
-        RenderersFactory renderersFactory = new DefaultRenderersFactory(this);
-
-        TrackSelection.Factory videoTrackSelectionFactory = new AdaptiveTrackSelection.Factory(bandwidthMeter);
-        TrackSelector trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
-
-        LoadControl loadControl = new DefaultLoadControl();
-
-        player = ExoPlayerFactory.newSimpleInstance(renderersFactory, trackSelector, loadControl);
+        // Create player
+        player = new ExoPlayer.Builder(this)
+                .setMediaSourceFactory(new DefaultMediaSourceFactory(this))
+                .build();
 
         playerView = findViewById(R.id.exoPlayerView);
         playerView.setPlayer(player);
@@ -104,73 +73,29 @@ public class ActivityVideoPlayer extends AppCompatActivity {
 
         playerOrientation();
 
-        Uri uri = Uri.parse(url);
-
-        MediaSource mediaSource = buildMediaSource(uri, null);
-
-        player.prepare(mediaSource);
+        // Create media source
+        MediaItem mediaItem = MediaItem.fromUri(url);
+        player.setMediaItem(mediaItem);
+        player.prepare();
         player.setPlayWhenReady(true);
 
-        player.addListener(new Player.EventListener() {
+        player.addListener(new Player.Listener() {
             @Override
-            public void onTimelineChanged(Timeline timeline, @Nullable Object manifest, int reason) {
-                Log.d(TAG, "onTimelineChanged: ");
-            }
-
-            @Override
-            public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
-                Log.d(TAG, "onTracksChanged: " + trackGroups.length);
-            }
-
-            @Override
-            public void onLoadingChanged(boolean isLoading) {
-                Log.d(TAG, "onLoadingChanged: " + isLoading);
-            }
-
-            @Override
-            public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-                Log.d(TAG, "onPlayerStateChanged: " + playWhenReady);
-                if (playbackState == PlaybackStateCompat.STATE_PLAYING) {
+            public void onPlaybackStateChanged(int state) {
+                if (state == Player.STATE_READY) {
                     progressBar.setVisibility(View.GONE);
                 }
             }
 
             @Override
-            public void onRepeatModeChanged(int repeatMode) {
-
-            }
-
-            @Override
-            public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
-
-            }
-
-            @Override
-            public void onPlayerError(ExoPlaybackException error) {
+            public void onPlayerError(PlaybackException error) {
                 Log.e(TAG, "onPlayerError: ", error);
                 player.stop();
                 errorDialog();
             }
-
-            @Override
-            public void onPositionDiscontinuity(int reason) {
-                Log.d(TAG, "onPositionDiscontinuity: true");
-            }
-
-            @Override
-            public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
-
-            }
-
-            @Override
-            public void onSeekProcessed() {
-
-            }
         });
-
-        Log.d("INFO", "ActivityVideoPlayer");
-
     }
+
 
     private void playerOrientation() {
         fullscreenButton = playerView.findViewById(R.id.exo_fullscreen_icon);
@@ -205,27 +130,46 @@ public class ActivityVideoPlayer extends AppCompatActivity {
         });
     }
 
-    private MediaSource buildMediaSource(Uri uri, String overrideExtension) {
-        int type = TextUtils.isEmpty(overrideExtension) ? Util.inferContentType(uri)
-                : Util.inferContentType("." + overrideExtension);
+    private MediaSource buildMediaSource(Uri uri) {
+        DefaultHttpDataSource.Factory httpDataSourceFactory = new DefaultHttpDataSource.Factory()
+                .setUserAgent(Util.getUserAgent(this, "ExoPlayerDemo"))
+                .setTransferListener(new DefaultBandwidthMeter.Builder(this).build());
+
+        DefaultDataSource.Factory dataSourceFactory = new DefaultDataSource.Factory(this, httpDataSourceFactory);
+
+        // Определяем тип медиа
+        @C.ContentType int type = Util.inferContentType(uri);
+
         switch (type) {
-            case C.TYPE_SS:
-                return new SsMediaSource.Factory(new DefaultSsChunkSource.Factory(mediaDataSourceFactory), buildDataSourceFactory(false)).createMediaSource(uri);
             case C.TYPE_DASH:
-                return new DashMediaSource.Factory(new DefaultDashChunkSource.Factory(mediaDataSourceFactory), buildDataSourceFactory(false)).createMediaSource(uri);
+                return new DashMediaSource.Factory(dataSourceFactory)
+                        .createMediaSource(MediaItem.fromUri(uri));
             case C.TYPE_HLS:
-                return new HlsMediaSource.Factory(mediaDataSourceFactory).createMediaSource(uri);
-            case C.TYPE_OTHER:
-                return new ExtractorMediaSource.Factory(mediaDataSourceFactory).createMediaSource(uri);
-            default: {
-                throw new IllegalStateException("Unsupported type: " + type);
-            }
+                return new HlsMediaSource.Factory(dataSourceFactory)
+                        .createMediaSource(MediaItem.fromUri(uri));
+            case C.TYPE_SS:
+                return new SsMediaSource.Factory(dataSourceFactory)
+                        .createMediaSource(MediaItem.fromUri(uri));
+            default:
+                return new ProgressiveMediaSource.Factory(dataSourceFactory)
+                        .createMediaSource(MediaItem.fromUri(uri));
         }
     }
 
     private DataSource.Factory buildDataSourceFactory(boolean useBandwidthMeter) {
-        return buildDataSourceFactory(useBandwidthMeter ? BANDWIDTH_METER : null);
+        DefaultBandwidthMeter.Builder bandwidthMeterBuilder = new DefaultBandwidthMeter.Builder(this);
+        DefaultBandwidthMeter bandwidthMeter = bandwidthMeterBuilder.build();
+
+        DefaultHttpDataSource.Factory httpDataSourceFactory = new DefaultHttpDataSource.Factory()
+                .setUserAgent(Util.getUserAgent(this, "ExoPlayerDemo"));
+
+        if (useBandwidthMeter) {
+            httpDataSourceFactory.setTransferListener(bandwidthMeter);
+        }
+
+        return new DefaultDataSource.Factory(this, httpDataSourceFactory);
     }
+
 
     public DataSource.Factory buildDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {
         return new DefaultDataSourceFactory(this, bandwidthMeter,
@@ -233,7 +177,9 @@ public class ActivityVideoPlayer extends AppCompatActivity {
     }
 
     public HttpDataSource.Factory buildHttpDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {
-        return new DefaultHttpDataSourceFactory(Util.getUserAgent(this, "ExoPlayerDemo"), bandwidthMeter);
+        return new DefaultHttpDataSource.Factory()
+                .setUserAgent(Util.getUserAgent(this, "ExoPlayerDemo"))
+                .setTransferListener(bandwidthMeter);
     }
 
     @Override
@@ -242,33 +188,32 @@ public class ActivityVideoPlayer extends AppCompatActivity {
         player.stop();
     }
 
+
     public void errorDialog() {
         new AlertDialog.Builder(this)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setTitle("Oops!")
                 .setCancelable(false)
                 .setMessage("Failed to load stream, probably the stream server currently down!")
-                .setPositiveButton("Retry", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        retryLoad();
-                    }
-
-                })
-                .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        finish();
-                    }
-                })
+                .setPositiveButton("Retry", (dialog, which) -> retryLoad())
+                .setNegativeButton("No", (dialogInterface, i) -> finish())
                 .show();
     }
 
+
     public void retryLoad() {
-        Uri uri = Uri.parse(url);
-        MediaSource mediaSource = buildMediaSource(uri, null);
-        player.prepare(mediaSource);
+        MediaItem mediaItem = MediaItem.fromUri(url);
+        player.setMediaItem(mediaItem);
+        player.prepare();
         player.setPlayWhenReady(true);
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (player != null) {
+            player.release();
+            player = null;
+        }
+    }
 }

@@ -55,6 +55,7 @@ import com.google.android.gms.ads.MobileAds;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.bottomnavigation.LabelVisibilityMode;
+import com.google.android.material.navigation.NavigationBarView;
 import com.startapp.sdk.adsbase.StartAppAd;
 import com.startapp.sdk.adsbase.StartAppSDK;
 
@@ -124,8 +125,11 @@ public class MainActivity extends AppCompatActivity {
 
         if (adsPref.getAdStatus().equals(AD_STATUS_ON) && adsPref.getAdType().equals(ADMOB)) {
             GDPR.updateConsentStatus(this);
-            MobileAds.initialize(MainActivity.this, adsPref.getAdMobAppId());
-        }
+
+            MobileAds.initialize(MainActivity.this, initializationStatus -> {
+                // Callback после инициализации
+            });
+                    }
 
         getAdsLog();
 
@@ -143,7 +147,8 @@ public class MainActivity extends AppCompatActivity {
         coordinatorLayout = findViewById(R.id.coordinatorLayout);
 
         navigation = findViewById(R.id.navigation);
-        navigation.setLabelVisibilityMode(LabelVisibilityMode.LABEL_VISIBILITY_LABELED);
+        navigation.setLabelVisibilityMode(NavigationBarView.LABEL_VISIBILITY_LABELED);
+
 
         if (AppConfig.ENABLE_RTL_MODE) {
             initRTLViewPager();

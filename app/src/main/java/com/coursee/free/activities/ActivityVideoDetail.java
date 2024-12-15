@@ -28,6 +28,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -64,7 +65,8 @@ import com.facebook.shimmer.ShimmerFrameLayout;
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdLoader;
 import com.google.android.gms.ads.AdView;
-import com.google.android.gms.ads.formats.MediaView;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.nativead.MediaView;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.snackbar.Snackbar;
 import com.squareup.picasso.Picasso;
@@ -549,24 +551,34 @@ public class ActivityVideoDetail extends AppCompatActivity {
                 adView.setAdListener(new AdListener() {
                     @Override
                     public void onAdClosed() {
+                        super.onAdClosed();
                     }
 
                     @Override
-                    public void onAdFailedToLoad(int error) {
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        super.onAdFailedToLoad(loadAdError);
                         adContainerView.setVisibility(View.GONE);
                     }
 
                     @Override
-                    public void onAdLeftApplication() {
-                    }
-
-                    @Override
                     public void onAdOpened() {
+                        super.onAdOpened();
                     }
 
                     @Override
                     public void onAdLoaded() {
+                        super.onAdLoaded();
                         adContainerView.setVisibility(View.VISIBLE);
+                    }
+
+                    @Override
+                    public void onAdClicked() {
+                        super.onAdClicked();
+                    }
+
+                    @Override
+                    public void onAdImpression() {
+                        super.onAdImpression();
                     }
                 });
             });
@@ -576,7 +588,7 @@ public class ActivityVideoDetail extends AppCompatActivity {
     private void loadAdMobNativeAd() {
         if (!adsPref.getAdMobNativeId().equals("0")) {
             AdLoader adLoader = new AdLoader.Builder(this, adsPref.getAdMobNativeId())
-                    .forUnifiedNativeAd(unifiedNativeAd -> {
+                    .forNativeAd(nativeAd -> {
                         if (sharedPref.getIsDarkTheme()) {
                             ColorDrawable colorDrawable = new ColorDrawable(ContextCompat.getColor(this, R.color.colorBackgroundDark));
                             NativeTemplateStyle styles = new NativeTemplateStyle.Builder().withMainBackgroundColor(colorDrawable).build();
@@ -587,12 +599,13 @@ public class ActivityVideoDetail extends AppCompatActivity {
                             native_template.setStyles(styles);
                         }
                         mediaView.setImageScaleType(ImageView.ScaleType.CENTER_CROP);
-                        native_template.setNativeAd(unifiedNativeAd);
+                        native_template.setNativeAd(nativeAd);
                         native_template.setVisibility(View.VISIBLE);
                     })
                     .withAdListener(new AdListener() {
                         @Override
-                        public void onAdFailedToLoad(int errorCode) {
+                        public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                            super.onAdFailedToLoad(loadAdError);
                             native_template.setVisibility(View.GONE);
                         }
                     })

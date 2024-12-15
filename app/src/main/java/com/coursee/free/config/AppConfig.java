@@ -3,7 +3,7 @@ package com.coursee.free.config;
 public class AppConfig {
 
     //your admin panel url
-    public static final String ADMIN_PANEL_URL = "https://tolebi-tany.kz";
+    public static final String ADMIN_PANEL_URL = "http://87.255.194.3/plesk-site-preview/coursee.tk/https/87.255.194.3/";
 
     //your api key which obtained from admin panel
     public static final String API_KEY = "cda119TEK3Ar5FS6gRwqVWnN7YLpb0u4v1jfkJOaQxX8UDsBcI";

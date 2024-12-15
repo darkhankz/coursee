@@ -19,6 +19,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -42,7 +43,9 @@ import com.facebook.ads.NativeAdLayout;
 import com.facebook.ads.NativeAdListener;
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdLoader;
-import com.google.android.gms.ads.formats.MediaView;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.nativead.MediaView;
+
 import com.squareup.picasso.Picasso;
 import com.startapp.sdk.ads.nativead.NativeAdDetails;
 import com.startapp.sdk.ads.nativead.NativeAdPreferences;
@@ -156,8 +159,10 @@ public class AdapterRecent extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         private void bindAdMobNativeAdView() {
             final SharedPref sharedPref = new SharedPref(context);
             final AdsPref adsPref = new AdsPref(context);
+
             AdLoader adLoader = new AdLoader.Builder(context, adsPref.getAdMobNativeId())
-                    .forUnifiedNativeAd(unifiedNativeAd -> {
+                    .forNativeAd(nativeAd -> {
+                        // Стили для темной/светлой темы
                         if (sharedPref.getIsDarkTheme()) {
                             ColorDrawable colorDrawable = new ColorDrawable(ContextCompat.getColor(context, R.color.colorBackgroundDark));
                             NativeTemplateStyle styles = new NativeTemplateStyle.Builder().withMainBackgroundColor(colorDrawable).build();
@@ -168,8 +173,15 @@ public class AdapterRecent extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                             admob_native_template.setStyles(styles);
                         }
                         admob_media_view.setImageScaleType(ImageView.ScaleType.CENTER_CROP);
-                        admob_native_template.setNativeAd(unifiedNativeAd);
-                    }).withAdListener(new AdListener() {
+                        admob_native_template.setNativeAd(nativeAd);
+                    })
+                    .withAdListener(new AdListener() {
+                        @Override
+                        public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                            super.onAdFailedToLoad(loadAdError);
+                            admob_native_template.setVisibility(View.GONE);
+                        }
+
                         @Override
                         public void onAdLoaded() {
                             super.onAdLoaded();
@@ -179,17 +191,11 @@ public class AdapterRecent extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                                 admob_native_template.setVisibility(View.GONE);
                             }
                         }
-
-                        @Override
-                        public void onAdFailedToLoad(int errorCode) {
-                            admob_native_template.setVisibility(View.GONE);
-                        }
                     })
                     .build();
+
             adLoader.loadAd(Tools.getAdRequest((Activity) context));
-
         }
-
         private void bindFanNativeAdView() {
             final AdsPref adsPref = new AdsPref(context);
             final SharedPref sharedPref = new SharedPref(context);

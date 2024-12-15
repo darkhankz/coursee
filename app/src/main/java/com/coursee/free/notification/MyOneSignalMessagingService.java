@@ -19,70 +19,87 @@ import androidx.core.content.ContextCompat;
 import com.coursee.free.R;
 import com.coursee.free.activities.MainActivity;
 import com.coursee.free.utils.Constant;
-import com.onesignal.NotificationExtenderService;
-import com.onesignal.OSNotificationReceivedResult;
+
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class MyOneSignalMessagingService extends NotificationExtenderService {
+import com.onesignal.OSNotification;
+import com.onesignal.OSNotificationReceivedEvent;
+import com.onesignal.OneSignal.OSRemoteNotificationReceivedHandler;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public class MyOneSignalMessagingService implements OSRemoteNotificationReceivedHandler {
 
     public static final int NOTIFICATION_ID = 1;
     String message, bigpicture, title, cname, url;
     String nid;
 
     @Override
-    protected boolean onNotificationProcessing(OSNotificationReceivedResult receivedResult) {
+    public void remoteNotificationReceived(Context context, OSNotificationReceivedEvent notificationReceivedEvent) {
+        OSNotification notification = notificationReceivedEvent.getNotification();
 
-        title = receivedResult.payload.title;
-        message = receivedResult.payload.body;
-        bigpicture = receivedResult.payload.bigPicture;
+        title = notification.getTitle();
+        message = notification.getBody();
+        bigpicture = notification.getBigPicture();
 
         try {
-            nid = receivedResult.payload.additionalData.getString("cat_id");
-            cname = receivedResult.payload.additionalData.getString("cat_name");
-            url = receivedResult.payload.additionalData.getString("external_link");
-        } catch (Exception e) {
+            JSONObject additionalData = notification.getAdditionalData();
+            if (additionalData != null) {
+                nid = additionalData.getString("cat_id");
+                cname = additionalData.getString("cat_name");
+                url = additionalData.getString("external_link");
+            }
+        } catch (JSONException e) {
             e.printStackTrace();
         }
 
-        sendNotification();
+        sendNotification(context);
 
-        return true;
+        notificationReceivedEvent.complete(notification);
     }
 
-    private void sendNotification() {
-
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+    private void sendNotification(Context context) {
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
         Intent intent;
         if (nid.equals("0") && !url.equals("false") && !url.trim().isEmpty()) {
-            intent = new Intent(this, MainActivity.class);
+            intent = new Intent(context, MainActivity.class);
             intent.putExtra("nid", nid);
             intent.putExtra("external_link", url);
             intent.putExtra("cname", cname);
         } else {
-            intent = new Intent(this, MainActivity.class);
+            intent = new Intent(context, MainActivity.class);
             intent.putExtra("nid", nid);
             intent.putExtra("external_link", url);
             intent.putExtra("cname", cname);
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel mChannel = new NotificationChannel(Constant.NOTIFICATION_CHANNEL_NAME, getString(R.string.app_name), NotificationManager.IMPORTANCE_HIGH);
+            NotificationChannel mChannel = new NotificationChannel(Constant.NOTIFICATION_CHANNEL_NAME,
+                    context.getString(R.string.app_name), NotificationManager.IMPORTANCE_HIGH);
             notificationManager.createNotificationChannel(mChannel);
         }
 
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent contentIntent = PendingIntent.getActivity(this, (int) System.currentTimeMillis(), intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+
+        PendingIntent contentIntent = PendingIntent.getActivity(context,
+                (int) System.currentTimeMillis(), intent, flags);
 
         Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
-        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, Constant.NOTIFICATION_CHANNEL_NAME)
-                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_notification_large))
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context, Constant.NOTIFICATION_CHANNEL_NAME)
+                .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_notification_large))
                 .setContentTitle(title)
                 .setTicker(message)
                 .setAutoCancel(true)
@@ -90,10 +107,12 @@ public class MyOneSignalMessagingService extends NotificationExtenderService {
                 .setChannelId(Constant.NOTIFICATION_CHANNEL_NAME)
                 .setLights(Color.RED, 800, 800);
 
-        mBuilder.setSmallIcon(getNotificationIcon(mBuilder));
+        mBuilder.setSmallIcon(getNotificationIcon(context, mBuilder));
 
         if (bigpicture != null) {
-            mBuilder.setStyle(new NotificationCompat.BigPictureStyle().bigPicture(getBitmapFromURL(bigpicture)).setSummaryText(Html.fromHtml(message)));
+            mBuilder.setStyle(new NotificationCompat.BigPictureStyle()
+                    .bigPicture(getBitmapFromURL(bigpicture))
+                    .setSummaryText(Html.fromHtml(message)));
             mBuilder.setContentText(Html.fromHtml(message));
         } else {
             mBuilder.setContentText(Html.fromHtml(message));
@@ -101,18 +120,17 @@ public class MyOneSignalMessagingService extends NotificationExtenderService {
 
         mBuilder.setContentIntent(contentIntent);
         notificationManager.notify((int) System.currentTimeMillis(), mBuilder.build());
-
     }
 
-    private int getNotificationIcon(NotificationCompat.Builder notificationBuilder) {
-
+    private int getNotificationIcon(Context context, NotificationCompat.Builder notificationBuilder) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            notificationBuilder.setColor(ContextCompat.getColor(getApplicationContext(), R.color.colorPrimary));
+            notificationBuilder.setColor(ContextCompat.getColor(context, R.color.colorPrimary));
             return R.drawable.ic_stat_onesignal_default;
         } else {
             return R.drawable.ic_stat_onesignal_default;
         }
     }
+
 
     private int getColour() {
         return 0x3F51B5;
