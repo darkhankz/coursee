@@ -1,136 +1,263 @@
 package com.coursee.free.activities;
 
 import android.annotation.SuppressLint;
-import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
+import android.graphics.Rect;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
 import com.coursee.free.R;
-import com.coursee.free.config.AppConfig;
-import com.coursee.free.utils.AdsPref;
 import com.coursee.free.utils.Constant;
-import com.google.android.youtube.player.YouTubeBaseActivity;
-import com.google.android.youtube.player.YouTubeInitializationResult;
-import com.google.android.youtube.player.YouTubePlayer;
-import com.google.android.youtube.player.YouTubePlayer.Provider;
-import com.google.android.youtube.player.YouTubePlayerView;
 
-public class ActivityYoutubePlayer extends YouTubeBaseActivity implements YouTubePlayer.OnInitializedListener {
+public class ActivityYoutubePlayer extends AppCompatActivity {
 
-    private static final int RECOVERY_REQUEST = 1;
-    private YouTubePlayerView youTubeView;
-    private MyPlayerStateChangeListener playerStateChangeListener;
-    private String str_video_id;
-    AdsPref adsPref;
+    private static final String STATE_SCREEN_LOCKED = "screen_locked_state";
 
-    @SuppressLint("SourceLockedOrientationActivity")
+    private WebView webView;
+    private ProgressBar progressBar;
+    private String videoId;
+    private boolean fullscreen = false;
+    private ImageView fullscreenButton;
+    private ImageView lockButton;
+    private View touchBlocker;
+    private boolean isScreenLocked = false;
+    private RelativeLayout controlsLayout; // Добавьте это
+
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setContentView(R.layout.activity_youtube);
 
-        adsPref = new AdsPref(this);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        if (AppConfig.FORCE_PLAYER_TO_LANDSCAPE) {
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        setContentView(R.layout.activity_youtube_player);
+
+        videoId = getIntent().getStringExtra(Constant.KEY_VIDEO_ID);
+        if (videoId == null) {
+            Toast.makeText(this, "Error loading video", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
         }
 
-        Intent intent = getIntent();
-        if (null != intent) {
-            str_video_id = intent.getStringExtra(Constant.KEY_VIDEO_ID);
-            //str_vid = intent.getStringExtra(Constant.KEY_VID);
+        initViews();
+        setupWebView();
+        setupControls();
+        loadYouTubePlayer();
+
+        // Восстанавливаем состояние после поворота экрана
+        if (savedInstanceState != null) {
+            isScreenLocked = savedInstanceState.getBoolean(STATE_SCREEN_LOCKED, false);
+            if (isScreenLocked) {
+                lockScreen();
+            }
         }
+    }
 
-        //loadViewed();
+    private void initViews() {
+        webView = findViewById(R.id.webView);
+        progressBar = findViewById(R.id.progressBar);
+        fullscreenButton = findViewById(R.id.exo_fullscreen_icon);
+        lockButton = findViewById(R.id.lockButton);
+        touchBlocker = findViewById(R.id.touchBlocker);
+        controlsLayout = findViewById(R.id.controls_layout); // Добавьте в layout
+    }
 
-        youTubeView = findViewById(R.id.youtube_view);
-        youTubeView.initialize(adsPref.getYoutubeAPIKey(), this);
+    private void setupControls() {
+        // Настройка кнопки блокировки
+        lockButton.setOnClickListener(v -> {
+            isScreenLocked = !isScreenLocked;
+            if (isScreenLocked) {
+                lockScreen();
+            } else {
+                unlockScreen();
+            }
+        });
 
-        playerStateChangeListener = new MyPlayerStateChangeListener();
+        // Настройка кнопки полноэкранного режима
+        fullscreenButton.setOnClickListener(v -> {
+            if (fullscreen) {
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                fullscreenButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_fullscreen_open));
+            } else {
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                fullscreenButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_fullscreen_close));
+            }
+            fullscreen = !fullscreen;
+        });
+    }
 
+    private void lockScreen() {
+        lockButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_lock));
+        fullscreenButton.setVisibility(View.GONE);
+        touchBlocker.setVisibility(View.VISIBLE);
+
+        // Блокируем все касания на WebView
+        webView.setOnTouchListener((v, event) -> true);
+    }
+
+    private void unlockScreen() {
+        lockButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_unlock));
+        fullscreenButton.setVisibility(View.VISIBLE);
+        touchBlocker.setVisibility(View.GONE);
+
+        // Разблокируем касания на WebView
+        webView.setOnTouchListener(null);
     }
 
     @Override
-    public void onInitializationSuccess(Provider provider, YouTubePlayer player, boolean wasRestored) {
-        player.setPlayerStateChangeListener(playerStateChangeListener);
-        if (!wasRestored) {
-            player.loadVideo(str_video_id);
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (isScreenLocked) {
+            // Определяем координаты касания
+            float x = ev.getRawX();
+            float y = ev.getRawY();
+
+            // Получаем координаты кнопки блокировки
+            int[] lockButtonLocation = new int[2];
+            lockButton.getLocationOnScreen(lockButtonLocation);
+
+            // Определяем область кнопки
+            Rect lockButtonRect = new Rect(
+                    lockButtonLocation[0],
+                    lockButtonLocation[1],
+                    lockButtonLocation[0] + lockButton.getWidth(),
+                    lockButtonLocation[1] + lockButton.getHeight()
+            );
+
+            // Если касание в области кнопки блокировки
+            if (lockButtonRect.contains((int)x, (int)y)) {
+                return super.dispatchTouchEvent(ev);
+            }
+
+            // Блокируем все остальные касания
+            return true;
         }
+        return super.dispatchTouchEvent(ev);
     }
 
     @Override
-    public void onInitializationFailure(Provider provider, YouTubeInitializationResult errorReason) {
-        if (errorReason.isUserRecoverableError()) {
-            errorReason.getErrorDialog(this, RECOVERY_REQUEST).show();
-        } else {
-            Toast.makeText(this, getResources().getString(R.string.error_player), Toast.LENGTH_LONG).show();
-        }
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(STATE_SCREEN_LOCKED, isScreenLocked);
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == RECOVERY_REQUEST) {
-            // Retry initialization if user performed a recovery action
-            getYouTubePlayerProvider().initialize(adsPref.getYoutubeAPIKey(), this);
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // Пересоздаем состояние блокировки после поворота
+        if (isScreenLocked) {
+            lockScreen();
         }
     }
 
-    protected Provider getYouTubePlayerProvider() {
-        return youTubeView;
+
+    private void setupWebView() {
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                progressBar.setVisibility(View.GONE);
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                // Блокируем все переходы по ссылкам
+                return true;
+            }
+        });
+
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webSettings.setDomStorageEnabled(true);
+        webSettings.setLoadWithOverviewMode(true);
+        webSettings.setUseWideViewPort(true);
+        webSettings.setBuiltInZoomControls(false);
+        webSettings.setDisplayZoomControls(false);
+        webSettings.setMediaPlaybackRequiresUserGesture(false);  // Разрешаем автовоспроизведение
     }
+
+    private void loadYouTubePlayer() {
+        String html = "<!DOCTYPE html><html>" +
+                "<head>" +
+                "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">" +
+                "<style>" +
+                "body { margin: 0; padding: 0; width: 100%; height: 100%; }" +
+                "#player { position: fixed; width: 100%; height: 100%; }" +
+                "</style>" +
+                "</head>" +
+                "<body>" +
+                "<div id='player'></div>" +
+                "<script src='https://www.youtube.com/iframe_api'></script>" +
+                "<script>" +
+                "var player;" +
+                "function onYouTubeIframeAPIReady() {" +
+                "    player = new YT.Player('player', {" +
+                "        height: '100%'," +
+                "        width: '100%'," +
+                "        videoId: '" + videoId + "'," +
+                "        playerVars: {" +
+                "            autoplay: 1," +
+                "            playsinline: 1," +
+                "            rel: 0," +                    // отключает похожие видео в конце
+                "            modestbranding: 1," +         // убирает логотип YouTube (но не полностью)
+                "            controls: 1," +               // оставляем элементы управления
+                "            showinfo: 0," +               // скрывает информацию о видео
+                "            fs: 1," +                     // разрешает полноэкранный режим
+                "            iv_load_policy: 3," +         // отключает аннотации
+                "            disablekb: 1," +              // отключает управление с клавиатуры
+                "            cc_load_policy: 0," +         // отключает субтитры по умолчанию
+                "            origin: window.location.origin" +
+                "        }," +
+                "        events: {" +
+                "            onError: onPlayerError" +
+                "        }" +
+                "    });" +
+                "}" +
+                "function onPlayerError(event) {" +
+                "    Android.onError(event.data);" +
+                "}" +
+                "</script>" +
+                "</body></html>";
+
+        webView.loadDataWithBaseURL("https://www.youtube.com", html, "text/html", "UTF-8", null);
+    }
+    private void setupFullscreenButton() {
+        fullscreenButton.setOnClickListener(v -> {
+            if (fullscreen) {
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                fullscreenButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_fullscreen_open));
+            } else {
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                fullscreenButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_fullscreen_close));
+            }
+            fullscreen = !fullscreen;
+        });
+    }
+
+
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
+    protected void onDestroy() {
+        if (webView != null) {
+            webView.loadUrl("about:blank");
+            webView.destroy();
+        }
+        super.onDestroy();
     }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        return super.onOptionsItemSelected(item);
-    }
-
-    private final class MyPlayerStateChangeListener implements YouTubePlayer.PlayerStateChangeListener {
-
-        @Override
-        public void onLoading() {
-            // Called when the player is loading a video
-            // At this point, it's not ready to accept commands affecting playback such as play() or pause()
-        }
-
-        @Override
-        public void onLoaded(String s) {
-            // Called when a video is done loading.
-            // Playback methods such as play(), pause() or seekToMillis(int) may be called after this callback.
-        }
-
-        @Override
-        public void onAdStarted() {
-            // Called when playback of an advertisement starts.
-        }
-
-        @Override
-        public void onVideoStarted() {
-            // Called when playback of the video starts.
-        }
-
-        @Override
-        public void onVideoEnded() {
-            // Called when the video reaches its end.
-            //showInterstitialAd();
-        }
-
-        @Override
-        public void onError(YouTubePlayer.ErrorReason errorReason) {
-            // Called when an error occurs.
-        }
-    }
-
 }

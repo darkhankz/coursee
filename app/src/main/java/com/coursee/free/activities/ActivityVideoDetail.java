@@ -287,18 +287,21 @@ public class ActivityVideoDetail extends AppCompatActivity {
         }
 
         video_thumbnail.setOnClickListener(view -> {
-
             if (Tools.isNetworkAvailable(ActivityVideoDetail.this)) {
-
+                // Запуск YouTube видео
                 if (post.video_type != null && post.video_type.equals("youtube")) {
                     Intent intent = new Intent(ActivityVideoDetail.this, ActivityYoutubePlayer.class);
                     intent.putExtra(Constant.KEY_VIDEO_ID, post.video_id);
                     startActivity(intent);
-                } else if (post.video_type != null && post.video_type.equals("Upload")) {
+                }
+                // Запуск обычного видео
+                else if (post.video_type != null && post.video_type.equals("Upload")) {
                     Intent intent = new Intent(ActivityVideoDetail.this, ActivityVideoPlayer.class);
                     intent.putExtra("url", AppConfig.ADMIN_PANEL_URL + "/upload/video/" + post.video_url);
                     startActivity(intent);
-                } else {
+                }
+                // Запуск стриминга
+                else {
                     if (post.video_url != null && post.video_url.startsWith("rtmp://")) {
                         Intent intent = new Intent(ActivityVideoDetail.this, ActivityRtmpPlayer.class);
                         intent.putExtra("url", post.video_url);
@@ -315,11 +318,9 @@ public class ActivityVideoDetail extends AppCompatActivity {
                 }
 
                 loadViewed();
-
             } else {
                 Toast.makeText(getApplicationContext(), getResources().getString(R.string.network_required), Toast.LENGTH_SHORT).show();
             }
-
         });
 
         video_description.setBackgroundColor(Color.TRANSPARENT);

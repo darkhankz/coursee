@@ -1,8 +1,11 @@
 package com.coursee.free.activities;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -10,6 +13,7 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -54,6 +58,13 @@ public class ActivityVideoPlayer extends AppCompatActivity {
         this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_video_player);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+        } else {
+            getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        }
+
         if (AppConfig.FORCE_PLAYER_TO_LANDSCAPE) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         }
@@ -79,6 +90,19 @@ public class ActivityVideoPlayer extends AppCompatActivity {
         player.prepare();
         player.setPlayWhenReady(true);
 
+        // Перед инициализацией плеера добавить проверку
+        if (!isYouTubeAppInstalled()) {
+            Toast.makeText(this, "Пожалуйста, установите или обновите YouTube", Toast.LENGTH_LONG).show();
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("market://details?id=com.google.android.youtube")));
+            } catch (android.content.ActivityNotFoundException anfe) {
+                startActivity(new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.youtube")));
+            }
+            return;
+        }
+
         player.addListener(new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(int state) {
@@ -89,9 +113,21 @@ public class ActivityVideoPlayer extends AppCompatActivity {
 
             @Override
             public void onPlayerError(PlaybackException error) {
-                Log.e(TAG, "onPlayerError: ", error);
-                player.stop();
-                errorDialog();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    Log.e(TAG, "Android 11+ Player Error: ", error);
+                    // Используем константы из PlaybackException
+                    if (error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED) {
+                        errorDialog("Проверьте подключение к интернету");
+                    } else if (error.errorCode == PlaybackException.ERROR_CODE_FAILED_RUNTIME_CHECK) {
+                        errorDialog("Требуется обновление YouTube");
+                    } else {
+                        errorDialog();
+                    }
+                } else {
+                    Log.e(TAG, "onPlayerError: ", error);
+                    player.stop();
+                    errorDialog();
+                }
             }
         });
     }
@@ -189,15 +225,20 @@ public class ActivityVideoPlayer extends AppCompatActivity {
     }
 
 
-    public void errorDialog() {
+    // Модифицируем метод errorDialog чтобы он принимал сообщение
+    public void errorDialog(String message) {
         new AlertDialog.Builder(this)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setTitle("Oops!")
                 .setCancelable(false)
-                .setMessage("Failed to load stream, probably the stream server currently down!")
+                .setMessage(message)
                 .setPositiveButton("Retry", (dialog, which) -> retryLoad())
                 .setNegativeButton("No", (dialogInterface, i) -> finish())
                 .show();
+    }
+
+    public void errorDialog() {
+        errorDialog("Failed to load stream, probably the stream server currently down!");
     }
 
 
@@ -206,6 +247,17 @@ public class ActivityVideoPlayer extends AppCompatActivity {
         player.setMediaItem(mediaItem);
         player.prepare();
         player.setPlayWhenReady(true);
+    }
+
+    // Добавить новые методы в существующий класс
+    private boolean isYouTubeAppInstalled() {
+        PackageManager pm = getPackageManager();
+        try {
+            pm.getPackageInfo("com.google.android.youtube", PackageManager.GET_ACTIVITIES);
+            return true;
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
     }
 
     @Override

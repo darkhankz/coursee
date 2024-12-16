@@ -5,10 +5,17 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
 
+    <!-- Добавить новый блок queries перед тегом application -->
     <queries>
+        <package android:name="com.google.android.youtube" />
         <intent>
             <action android:name="com.google.android.youtube.api.service.START" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
         </intent>
     </queries>
 
@@ -17,7 +24,7 @@
     <!--suppress DeprecatedClassUsageInspection -->
     <uses-permission
         android:name="android.permission.GET_TASKS"
-        android:maxSdkVersion="19" />
+        android:maxSdkVersion="21" />
 
     <application
         android:name="com.coursee.free.activities.MyApplication"
@@ -46,6 +53,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+
         <activity
             android:name="com.coursee.free.activities.ActivityVideoDetailOffline"
             android:configChanges="orientation|keyboardHidden|screenSize" />
@@ -66,7 +75,8 @@
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
             android:name="com.coursee.free.activities.ActivityYoutubePlayer"
-            android:configChanges="orientation|keyboardHidden|screenSize" />
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"/>
         <activity
             android:name="com.coursee.free.activities.ActivityVideoDetail"
             android:configChanges="orientation|keyboardHidden|screenSize" />
@@ -127,6 +137,8 @@
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
+
+
 
     </application>
 
