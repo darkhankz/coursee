@@ -1,14 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.coursee.free">
+<manifest xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
 
+    <!-- Добавить новый блок queries перед тегом application -->
     <queries>
+        <package android:name="com.google.android.youtube" />
         <intent>
             <action android:name="com.google.android.youtube.api.service.START" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
         </intent>
     </queries>
 
@@ -17,7 +24,7 @@
     <!--suppress DeprecatedClassUsageInspection -->
     <uses-permission
         android:name="android.permission.GET_TASKS"
-        android:maxSdkVersion="19" />
+        android:maxSdkVersion="21" />
 
     <application
         android:name="com.coursee.free.activities.MyApplication"
@@ -30,7 +37,8 @@
         android:usesCleartextTraffic="true">
         <activity
             android:name="com.coursee.free.activities.ActivitySplash"
-            android:configChanges="orientation|keyboardHidden|screenSize">
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -38,12 +46,15 @@
         </activity>
         <activity
             android:name="com.coursee.free.activities.MainActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize">
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+
         <activity
             android:name="com.coursee.free.activities.ActivityVideoDetailOffline"
             android:configChanges="orientation|keyboardHidden|screenSize" />
@@ -64,7 +75,8 @@
             android:configChanges="orientation|keyboardHidden|screenSize" />
         <activity
             android:name="com.coursee.free.activities.ActivityYoutubePlayer"
-            android:configChanges="orientation|keyboardHidden|screenSize" />
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"/>
         <activity
             android:name="com.coursee.free.activities.ActivityVideoDetail"
             android:configChanges="orientation|keyboardHidden|screenSize" />
@@ -84,12 +96,21 @@
             android:name="com.google.android.gms.ads.AdActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize" />
 
+<!--        <service-->
+<!--            android:name="com.coursee.free.notification.MyOneSignalMessagingService"-->
+<!--            android:exported="false"-->
+<!--            android:permission="android.permission.BIND_JOB_SERVICE">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="com.onesignal.NotificationExtender" />-->
+<!--            </intent-filter>-->
+<!--        </service>-->
+
         <service
             android:name="com.coursee.free.notification.MyOneSignalMessagingService"
             android:exported="false"
-            android:permission="android.permission.BIND_JOB_SERVICE">
+            tools:ignore="Instantiatable">
             <intent-filter>
-                <action android:name="com.onesignal.NotificationExtender" />
+                <action android:name="com.onesignal.NotificationServiceExtension" />
             </intent-filter>
         </service>
 
@@ -109,9 +130,15 @@
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/colorAccent" />
 
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-9342371160176687~8982359915"/> <!-- Замените на ваш реальный AdMob app ID -->
+
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
+
+
 
     </application>
 

@@ -19,6 +19,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -43,10 +44,14 @@ import com.facebook.ads.InterstitialAdListener;
 import com.facebook.shimmer.ShimmerFrameLayout;
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdView;
-import com.google.android.gms.ads.InterstitialAd;
+import com.google.android.gms.ads.FullScreenContentCallback;
 import com.startapp.sdk.ads.banner.Banner;
 import com.startapp.sdk.ads.banner.BannerListener;
 import com.startapp.sdk.adsbase.StartAppAd;
+
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+import com.google.android.gms.ads.LoadAdError;
 
 import java.util.ArrayList;
 
@@ -320,41 +325,63 @@ public class ActivitySearch extends AppCompatActivity {
                 adView.setAdListener(new AdListener() {
                     @Override
                     public void onAdClosed() {
+                        super.onAdClosed();
                     }
 
                     @Override
-                    public void onAdFailedToLoad(int error) {
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        super.onAdFailedToLoad(loadAdError);
                         adContainerView.setVisibility(View.GONE);
                     }
 
                     @Override
-                    public void onAdLeftApplication() {
-                    }
-
-                    @Override
                     public void onAdOpened() {
+                        super.onAdOpened();
                     }
 
                     @Override
                     public void onAdLoaded() {
+                        super.onAdLoaded();
                         adContainerView.setVisibility(View.VISIBLE);
+                    }
+
+                    @Override
+                    public void onAdClicked() {
+                        super.onAdClicked();
+                    }
+
+                    @Override
+                    public void onAdImpression() {
+                        super.onAdImpression();
                     }
                 });
             });
         }
     }
-
     private void loadAdMobInterstitialAd() {
         if (!adsPref.getAdMobInterstitialId().equals("0")) {
-            adMobInterstitialAd = new InterstitialAd(getApplicationContext());
-            adMobInterstitialAd.setAdUnitId(adsPref.getAdMobInterstitialId());
-            adMobInterstitialAd.loadAd(Tools.getAdRequest(ActivitySearch.this));
-            adMobInterstitialAd.setAdListener(new AdListener() {
-                @Override
-                public void onAdClosed() {
-                    adMobInterstitialAd.loadAd(Tools.getAdRequest(ActivitySearch.this));
-                }
-            });
+            InterstitialAd.load(
+                    this,
+                    adsPref.getAdMobInterstitialId(),
+                    Tools.getAdRequest(this),
+                    new InterstitialAdLoadCallback() {
+                        @Override
+                        public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
+                            adMobInterstitialAd = interstitialAd;
+                            adMobInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                                @Override
+                                public void onAdDismissedFullScreenContent() {
+                                    loadAdMobInterstitialAd();
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                            adMobInterstitialAd = null;
+                        }
+                    }
+            );
         }
     }
 
@@ -472,9 +499,9 @@ public class ActivitySearch extends AppCompatActivity {
     private void showInterstitialAdNetwork() {
         if (adsPref.getAdStatus().equals(AD_STATUS_ON) && adsPref.getAdType().equals(ADMOB)) {
             if (!adsPref.getAdMobInterstitialId().equals("0")) {
-                if (adMobInterstitialAd != null && adMobInterstitialAd.isLoaded()) {
+                if (adMobInterstitialAd != null) {
                     if (counter == adsPref.getInterstitialAdInterval()) {
-                        adMobInterstitialAd.show();
+                        adMobInterstitialAd.show(ActivitySearch.this);
                         counter = 1;
                     } else {
                         counter++;

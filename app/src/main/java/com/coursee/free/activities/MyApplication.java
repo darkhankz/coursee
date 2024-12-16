@@ -19,13 +19,17 @@ public class MyApplication extends Application {
         super.onCreate();
         mInstance = this;
 
-        // Logging set to help debug issues, remove before releasing your app.
+        // OneSignal Initialization
+        OneSignal.initWithContext(this);
+        OneSignal.setAppId("YOUR-ONESIGNAL-APP-ID"); // Замените на ваш APP_ID
+
+        // Опционально: настройка логирования
         OneSignal.setLogLevel(OneSignal.LOG_LEVEL.VERBOSE, OneSignal.LOG_LEVEL.NONE);
 
-        OneSignal.startInit(this)
-                .inFocusDisplaying(OneSignal.OSInFocusDisplayOption.Notification)
-                .unsubscribeWhenNotificationsAreDisabled(true)
-                .init();
+        // Опционально: настройка уведомлений
+        OneSignal.setNotificationWillShowInForegroundHandler(notificationReceivedEvent -> {
+            notificationReceivedEvent.complete(notificationReceivedEvent.getNotification());
+        });
     }
 
     @Override
@@ -45,5 +49,4 @@ public class MyApplication extends Application {
     public static synchronized MyApplication getInstance() {
         return mInstance;
     }
-
 }

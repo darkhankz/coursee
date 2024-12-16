@@ -17,15 +17,20 @@ import androidx.core.app.NotificationCompat;
 
 import com.coursee.free.R;
 import com.coursee.free.activities.ActivitySplash;
-import com.onesignal.NotificationExtenderService;
-import com.onesignal.OSNotificationReceivedResult;
+import com.onesignal.OneSignal;
+
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class NotificationExtenderExample extends NotificationExtenderService {
+import com.onesignal.OSNotification;
+import com.onesignal.OSNotificationReceivedEvent;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public class NotificationExtenderExample implements OneSignal.OSRemoteNotificationReceivedHandler {
 
     public static final int NOTIFICATION_ID = 1;
     private NotificationManager mNotificationManager;
@@ -33,65 +38,74 @@ public class NotificationExtenderExample extends NotificationExtenderService {
     private String NOTIFICATION_CHANNEL_ID = "your_videos_channel_app_channel_01";
 
     @Override
-    protected boolean onNotificationProcessing(OSNotificationReceivedResult receivedResult) {
+    public void remoteNotificationReceived(Context context, OSNotificationReceivedEvent notificationReceivedEvent) {
+        OSNotification notification = notificationReceivedEvent.getNotification();
 
-        title = receivedResult.payload.title;
-        message = receivedResult.payload.body;
-        bigpicture = receivedResult.payload.bigPicture;
+        title = notification.getTitle();
+        message = notification.getBody();
+        bigpicture = notification.getBigPicture();
 
         try {
-            id = receivedResult.payload.additionalData.getString("cat_id");
-            cname = receivedResult.payload.additionalData.getString("cat_name");
-            url = receivedResult.payload.additionalData.getString("external_link");
-        } catch (Exception e) {
+            JSONObject additionalData = notification.getAdditionalData();
+            if (additionalData != null) {
+                id = additionalData.getString("cat_id");
+                cname = additionalData.getString("cat_name");
+                url = additionalData.getString("external_link");
+            }
+        } catch (JSONException e) {
             e.printStackTrace();
         }
 
-        sendNotification();
-        return true;
+        sendNotification(context);
+        notificationReceivedEvent.complete(notification);
     }
 
-    private void sendNotification() {
-        mNotificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
+    private void sendNotification(Context context) {
+        mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
         Intent intent;
         if (id.equals("0") && !url.equals("false") && !url.trim().isEmpty()) {
-            intent = new Intent(this, ActivitySplash.class);
+            intent = new Intent(context, ActivitySplash.class);
             intent.putExtra("nid", id);
             intent.putExtra("external_link", url);
             intent.putExtra("cname", cname);
         } else {
-            intent = new Intent(this, ActivitySplash.class);
+            intent = new Intent(context, ActivitySplash.class);
             intent.putExtra("nid", id);
             intent.putExtra("external_link", url);
             intent.putExtra("cname", cname);
         }
 
-        NotificationChannel mChannel;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = "Your Videos Channel";// The user-visible name of the channel.
+            CharSequence name = "Your Videos Channel";
             int importance = NotificationManager.IMPORTANCE_HIGH;
-            mChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, name, importance);
+            NotificationChannel mChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, name, importance);
             mNotificationManager.createNotificationChannel(mChannel);
         }
 
-        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+
+        PendingIntent contentIntent = PendingIntent.getActivity(context, 0, intent, flags);
         Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
-                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_notification_large_icon))
+
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+                .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_notification_large_icon))
                 .setAutoCancel(true)
                 .setSound(uri)
-                .setAutoCancel(true)
                 .setChannelId(NOTIFICATION_CHANNEL_ID)
                 .setLights(Color.RED, 800, 800);
 
-        mBuilder.setSmallIcon(getNotificationIcon(mBuilder));
-
+        mBuilder.setSmallIcon(getNotificationIcon(context, mBuilder));
         mBuilder.setContentTitle(title);
         mBuilder.setTicker(message);
 
         if (bigpicture != null) {
-            mBuilder.setStyle(new NotificationCompat.BigPictureStyle().bigPicture(getBitmapFromURL(bigpicture)).setSummaryText(Html.fromHtml(message)));
+            mBuilder.setStyle(new NotificationCompat.BigPictureStyle()
+                    .bigPicture(getBitmapFromURL(bigpicture))
+                    .setSummaryText(Html.fromHtml(message)));
             mBuilder.setContentText(Html.fromHtml(message));
         } else {
             mBuilder.setContentText(Html.fromHtml(message));
@@ -101,8 +115,7 @@ public class NotificationExtenderExample extends NotificationExtenderService {
         mNotificationManager.notify(NOTIFICATION_ID, mBuilder.build());
     }
 
-    private int getNotificationIcon(NotificationCompat.Builder notificationBuilder) {
-
+    private int getNotificationIcon(Context context, NotificationCompat.Builder notificationBuilder) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             notificationBuilder.setColor(getColour());
             return R.drawable.ic_stat_onesignal_default;

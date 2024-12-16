@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -34,8 +35,11 @@ import com.facebook.ads.Ad;
 import com.facebook.ads.AdError;
 import com.facebook.ads.InterstitialAdListener;
 import com.facebook.shimmer.ShimmerFrameLayout;
-import com.google.android.gms.ads.AdListener;
-import com.google.android.gms.ads.InterstitialAd;
+
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 import com.startapp.sdk.adsbase.StartAppAd;
 
 import java.util.ArrayList;
@@ -62,7 +66,9 @@ public class FragmentCategory extends Fragment {
     public static final String EXTRA_OBJC = "key.EXTRA_OBJC";
     private Call<CallbackCategories> callbackCall = null;
     private ShimmerFrameLayout lyt_shimmer;
-    private InterstitialAd adMobInterstitialAd;
+
+    private InterstitialAd mInterstitialAd;
+
     private com.facebook.ads.InterstitialAd fanInterstitialAd;
     private StartAppAd startAppAd;
     private AdsPref adsPref;
@@ -246,15 +252,25 @@ public class FragmentCategory extends Fragment {
     private void loadAdNetwork() {
         if (adsPref.getAdStatus().equals(AD_STATUS_ON) && adsPref.getAdType().equals(ADMOB)) {
             if (!adsPref.getAdMobInterstitialId().equals("0")) {
-                adMobInterstitialAd = new InterstitialAd(getActivity());
-                adMobInterstitialAd.setAdUnitId(adsPref.getAdMobInterstitialId());
-                adMobInterstitialAd.loadAd(Tools.getAdRequest(getActivity()));
-                adMobInterstitialAd.setAdListener(new AdListener() {
-                    @Override
-                    public void onAdClosed() {
-                        adMobInterstitialAd.loadAd(Tools.getAdRequest(getActivity()));
-                    }
-                });
+                InterstitialAd.load(getActivity(), adsPref.getAdMobInterstitialId(),
+                        Tools.getAdRequest(getActivity()),
+                        new InterstitialAdLoadCallback() {
+                            @Override
+                            public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
+                                mInterstitialAd = interstitialAd;
+                                mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                                    @Override
+                                    public void onAdDismissedFullScreenContent() {
+                                        loadAdNetwork();
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                                mInterstitialAd = null;
+                            }
+                        });
             }
         } else if (adsPref.getAdStatus().equals(AD_STATUS_ON) && adsPref.getAdType().equals(FAN)) {
             if (BuildConfig.DEBUG) {
@@ -307,9 +323,9 @@ public class FragmentCategory extends Fragment {
     private void showInterstitialAdNetwork() {
         if (adsPref.getAdStatus().equals(AD_STATUS_ON) && adsPref.getAdType().equals(ADMOB)) {
             if (!adsPref.getAdMobInterstitialId().equals("0")) {
-                if (adMobInterstitialAd != null && adMobInterstitialAd.isLoaded()) {
+                if (mInterstitialAd != null) {
                     if (counter == adsPref.getInterstitialAdInterval()) {
-                        adMobInterstitialAd.show();
+                        mInterstitialAd.show(getActivity());
                         counter = 1;
                     } else {
                         counter++;

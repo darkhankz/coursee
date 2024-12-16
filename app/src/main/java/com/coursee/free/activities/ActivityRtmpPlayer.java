@@ -17,25 +17,18 @@ import androidx.core.content.ContextCompat;
 
 import com.coursee.free.R;
 import com.coursee.free.config.AppConfig;
-import com.google.android.exoplayer2.ExoPlayerFactory;
-import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.ext.rtmp.RtmpDataSourceFactory;
-import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
-import com.google.android.exoplayer2.extractor.ExtractorsFactory;
-import com.google.android.exoplayer2.source.ExtractorMediaSource;
+import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.MediaItem;
+import com.google.android.exoplayer2.ext.rtmp.RtmpDataSource;
+import com.google.android.exoplayer2.source.DefaultMediaSourceFactory;
 import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
-import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.google.android.exoplayer2.trackselection.TrackSelection;
-import com.google.android.exoplayer2.trackselection.TrackSelector;
 import com.google.android.exoplayer2.ui.PlayerView;
-import com.google.android.exoplayer2.upstream.BandwidthMeter;
-import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
+import com.google.android.exoplayer2.upstream.DefaultDataSource;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
 
 public class ActivityRtmpPlayer extends AppCompatActivity {
 
-    private RtmpDataSourceFactory rtmpDataSourceFactory;
-    private SimpleExoPlayer player;
+    private ExoPlayer player;
     String url;
     ProgressBar progressBar;
     boolean fullscreen = false;
@@ -55,33 +48,29 @@ public class ActivityRtmpPlayer extends AppCompatActivity {
 
         url = getIntent().getStringExtra("url");
         progressBar = findViewById(R.id.progressBar);
-
-        //Create Simple Exoplayer Player
-        BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-        TrackSelection.Factory videoTrackSelectionFactory = new AdaptiveTrackSelection.Factory(bandwidthMeter);
-        TrackSelector trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
-        player = ExoPlayerFactory.newSimpleInstance(this, trackSelector);
-
         playerView = findViewById(R.id.simple_player);
+
+        // Create player
+        player = new ExoPlayer.Builder(this)
+                .setMediaSourceFactory(new DefaultMediaSourceFactory(
+                        new DefaultDataSource.Factory(this,
+                                new DefaultHttpDataSource.Factory())))
+                .build();
+
         playerView.setPlayer(player);
 
-        //Create RTMP Data Source
-        rtmpDataSourceFactory = new RtmpDataSourceFactory();
-        ExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
-        //MediaSource videoSource = new ExtractorMediaSource(Uri.parse(url), rtmpDataSourceFactory, extractorsFactory, null, null);
+        // Create RTMP DataSource
+        RtmpDataSource.Factory rtmpDataSourceFactory = new RtmpDataSource.Factory();
+        MediaSource mediaSource = new DefaultMediaSourceFactory(rtmpDataSourceFactory)
+                .createMediaSource(MediaItem.fromUri(Uri.parse(url)));
 
-        MediaSource videoSource = new ExtractorMediaSource.Factory(rtmpDataSourceFactory).createMediaSource(Uri.parse(url));
-
-        player.prepare(videoSource);
+        player.setMediaSource(mediaSource);
+        player.prepare();
         player.setPlayWhenReady(true);
-
 
         new Handler().postDelayed(() -> progressBar.setVisibility(View.GONE), 5000);
 
         playerOrientation();
-
-        Log.d("INFO", "ActivityRtmpPlayer");
-
     }
 
     private void playerOrientation() {
@@ -123,4 +112,12 @@ public class ActivityRtmpPlayer extends AppCompatActivity {
         player.stop();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (player != null) {
+            player.release();
+            player = null;
+        }
+    }
 }
